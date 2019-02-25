@@ -21,20 +21,20 @@ client.connect();
 client.on('error', err => console.error(err));
 
 // API Routes
-app.get('/location', (request, response) => {
-  getLocation(request.query.data)
-    .then(location => {
-      console.log('27', location);
-      response.send(location)
-    })
-    .catch(error => handleError(error, response));
-})
+// app.get('/location', (request, response) => {
+//   getLocation(request.query.data)
+//     .then(location => {
+//       console.log('27', location);
+//       response.send(location)
+//     })
+//     .catch(error => handleError(error, response));
+// })
 
-// Do not comment in until you have locations in the DB
+app.get('/location', getLocation);
 app.get('/weather', getWeather);
-
-// Do not comment in until weather is working
 app.get('/meetups', getMeetups);
+app.get('/meetups', getYelp);
+app.get('/meetups', getMovies);
 
 // Make sure the server is listening for requests
 app.listen(PORT, () => console.log(`Listening on ${PORT}`));
@@ -122,7 +122,7 @@ function getLocation(query) {
           })
           .catch(error => console.log('Error in SQL Call'));
       }
-    });
+    })
 }
 
 function getWeather(request, response) {
