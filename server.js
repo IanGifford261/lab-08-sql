@@ -32,8 +32,8 @@ app.get('/location', (request, response) => {
 
 app.get('/weather', getWeather);
 app.get('/meetups', getMeetups);
-app.get('/meetups', getYelp);
-app.get('/meetups', getMovies);
+// app.get('/meetups', getYelp);
+// app.get('/meetups', getMovies);
 
 // Make sure the server is listening for requests
 app.listen(PORT, () => console.log(`Listening on ${PORT}`));
