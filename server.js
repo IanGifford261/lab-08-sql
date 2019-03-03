@@ -32,8 +32,9 @@ app.get('/location', (request, response) => {
 
 app.get('/weather', getWeather);
 app.get('/meetups', getMeetups);
-// app.get('/meetups', getYelp);
-// app.get('/meetups', getMovies);
+// app.get('/yelp', getYelp);
+app.get('/movies', getMovies);
+app.get('/trails', getTrails)
 
 // Make sure the server is listening for requests
 app.listen(PORT, () => console.log(`Listening on ${PORT}`));
@@ -55,12 +56,41 @@ function Weather(day) {
 }
 
 function Meetup(meetup) {
-  // this.tableName = 'meetups';
   this.link = meetup.link;
   this.name = meetup.group.name;
   this.creation_date = new Date(meetup.group.created).toString().slice(0, 15);
   this.host = meetup.group.who;
-  // this.created_at = Date.now();
+}
+
+// function Yelp(response) {
+//   this.url = response.url;
+//   this.name = response.name;
+//   this.rating = response.rating;
+//   this.price = response.price;
+//   this.image_url = response.image_url;
+// }
+
+function Movie(response) {
+  this.title = response.title;
+  this.released_on = response.release_date;
+  this.total_votes = response.vote_count;
+  this.average_votes = response.vote_average;
+  this.popularity = response.popularity;
+  this.image_url = 'http://image.tmdb.org/t/p/w300/' + response.poster_path;
+  this.overview = response.overview;
+}
+
+function Trail(response) {
+  this.trail_url = response.url;
+  this.name = response.name;
+  this.location = response.location;
+  this.length = response.length;
+  this.condition_date = new Date(response.conditionDate).toString().slice(0,10);
+  this.condition_time = new Date(response.conditionDate).getHours() + ':' + new Date(response.conditionDate).getMinutes();
+  this.conditions = response.conditionDetails;
+  this.stars = response.stars;
+  this.star_votes = response.starVotes;
+  this.summary = response.summary;
 }
 
 // *********************
@@ -73,7 +103,7 @@ function handleError(err, res) {
 }
 
 function getLocation(query) {
-  // CREATE the query string to check for the existence of the location
+
   const SQL = `SELECT * FROM locations WHERE search_query=$1;`;
   const values = [query];
 
@@ -148,6 +178,11 @@ function getWeather(request, response) {
               let newValues = Object.values(summary);
               newValues.push(request.query.data.id);
               return client.query(newSQL, newValues)
+                .then(result => {
+                  // Attach the id of the newly created record to the instance of location.
+                  // This will be used to connect the location to the other databases.
+                })
+                .catch(error => handleError(error, response));
             })
             response.send(weatherSummaries);
           })
@@ -157,29 +192,36 @@ function getWeather(request, response) {
 }
 
 
+// Meetups route handler
+
 function getMeetups(request, response) {
-  const SQL = `SELECT * FROM meetups WHERE location_id=$1`;
+
+  const SQL = `SELECT * FROM meetups WHERE location_id=$1;`;
   const values = [request.query.data.id];
 
   return client.query(SQL, values)
     .then(result => {
-      if(result.rowCount > 0){
-        console.log('From SQL')
-        response.send(result.rows)
-      } else {
-        const url = `https://api.meetup.com/find/upcoming_events?&sign=true&photo-host=public&lon=${request.query.data.longitude}&page=20&lat=${request.query.data.latitude}&key=${process.env.MEETUP_API_KEY}`
+      if (result.rowCount > 0) {
+        response.send(result.rows);
 
+      } else {
+        const url = `https://api.meetup.com/find/upcoming_events?&sign=true&photo-host=public&lon=${request.query.data.longitude}&page=20&lat=${request.query.data.latitude}&key=${process.env.MEETUPS_API_KEY}`;
         superagent.get(url)
           .then(result => {
             const meetups = result.body.events.map(meetup => {
-              const events = new Meetup(meetup);
-              return events;
+              return new Meetup(meetup)
             });
-            let newSQL = `INSERT INTO meetups(link, name, creation_date, host, location_id) VALUES ($1, $2, $3, $4, $5)`;
-            meetups.forEach(events => {
-              let newValues = Object.values(events);
+            let newSQL = `INSERT INTO meetups(link, name, creation_date, host, location_id) VALUES ($1, $2, $3, $4, $5);`;
+            meetups.forEach(meetup => {
+              let newValues = Object.values(meetup);
               newValues.push(request.query.data.id);
+
               return client.query(newSQL, newValues)
+                .then(result => {
+                  // Attach the id of the newly created record to the instance of location.
+                  // This will be used to connect the location to the other databases.
+                })
+                .catch(error => handleError(error, response));
             })
             response.send(meetups);
           })
@@ -188,3 +230,111 @@ function getMeetups(request, response) {
     })
 }
 
+// Yelp route handler
+
+// function getYelp(request, response) {
+
+//   const SQL = `SELECT * FROM yelps WHERE location_id=$1;`;
+//   const values = [request.query.data.id];
+
+//   return client.query(SQL, values)
+//     .then(result => {
+//       if (result.rowCount > 0) {
+//         response.send(result.rows);
+
+//       } else {
+//         const url = `https://api.yelp.com/v3/businesses/search?latitude=${request.query.data.latitude}&longitude=${request.query.data.longitude}`;
+//         superagent.get(url)
+//           .set({ 'Authorization': `Bearer ${process.env.YELP_API_KEY}` })
+//           .then(result => {
+//             const yelps = result.body.businesses.map(yelp => {
+//               return new Yelps(yelp);
+//             });
+//             let newSQL = `INSERT INTO yelps(url, name, rating, price, image_url, location_id) VALUES ($1, $2, $3, $4, $5, $6);`;
+//             yelps.forEach(yelp => {
+//               let newValues = Object.values(yelp);
+//               newValues.push(request.query.data.id);
+
+//               return client.query(newSQL, newValues)
+//                 .then(result => {
+//                 })
+//                 .catch(error => handleError(error, response));
+//             })
+//             response.send(yelps);
+//           })
+//           .catch(error => handleError(error, response));
+//       }
+//     })
+// }
+
+// MovieDB route handler
+
+function getMovies(request, response) {
+
+  const SQL = `SELECT * FROM movies WHERE location_id=$1;`;
+  const values = [request.query.data.id];
+
+  return client.query(SQL, values)
+    .then(result => {
+      if (result.rowCount > 0) {
+        response.send(result.rows);
+
+      } else {
+        const url = `https://api.themoviedb.org/3/search/movie?api_key=${process.env.MOVIE_API_KEY}&language=en-US&page=1&include_adult=false&query=${request.query.data.search_query}`;
+        superagent.get(url)
+          .then(result => {
+            const movies = result.body.results.map(movie => {
+              return new Movie(movie)
+            });
+            let newSQL = `INSERT INTO movies(title, released_on, total_votes, average_votes, popularity, image_url, overview, location_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8);`;
+            movies.forEach(movie => {
+              let newValues = Object.values(movie);
+              newValues.push(request.query.data.id);
+
+              return client.query(newSQL, newValues)
+                .then(result => {
+                  // This will be used to connect the location to the other databases.
+                })
+                .catch(error => handleError(error, response));
+            })
+            response.send(movies);
+          })
+          .catch(error => handleError(error, response));
+      }
+    })
+}
+
+function getTrails(request, response) {
+
+  const SQL = `SELECT * FROM trails WHERE location_id=$1;`;
+  const values = [request.query.data.id];
+
+  return client.query(SQL, values)
+    .then(result => {
+      if (result.rowCount > 0) {
+        response.send(result.rows);
+
+      } else {
+        const url = `https://www.hikingproject.com/data/get-trails?lat=${request.query.data.latitude}&lon=${request.query.data.longitude}&maxDistance=10&key=${process.env.TRAILS_API_KEY}`;
+        superagent.get(url)
+          .then(result => {
+            const trails = result.body.trails.map(trail => {
+              return new Trail(trail)
+            });
+            let newSQL = `INSERT INTO trails(trail_url, name, location, length, condition_date, condition_time, conditions, stars, star_votes, summary, location_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11);`;
+            trails.forEach(trail => {
+              let newValues = Object.values(trail);
+              newValues.push(request.query.data.id);
+
+              return client.query(newSQL, newValues)
+                .then(result => {
+                  // This will be used to connect the location to the other databases.
+                })
+                .catch(error => handleError(error, response));
+            })
+            response.send(trails);
+          })
+          .catch(error => handleError(error, response));
+      }
+    })
+}
