@@ -118,7 +118,7 @@ function getLocation(query) {
         // Otherwise get the location information from the Google API
       } else {
         const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${query}&key=${process.env.GEOCODE_API_KEY}`;
-
+        
         return superagent.get(url)
           .then(data => {
             console.log('FROM API line 90');
