@@ -21,16 +21,15 @@ client.connect();
 client.on('error', err => console.error(err));
 
 // API Routes
-// app.get('/location', (request, response) => {
-//   getLocation(request.query.data)
-//     .then(location => {
-//       console.log('27', location);
-//       response.send(location)
-//     })
-//     .catch(error => handleError(error, response));
-// })
+app.get('/location', (request, response) => {
+  getLocation(request.query.data)
+    .then(location => {
+      console.log('27', location);
+      response.send(location)
+    })
+    .catch(error => handleError(error, response));
+})
 
-app.get('/location', getLocation);
 app.get('/weather', getWeather);
 app.get('/meetups', getMeetups);
 app.get('/meetups', getYelp);
